@@ -1,0 +1,86 @@
+{
+  "client": "Thunder Client",
+  "collectionName": "AI CareerPilot - Auth Module",
+  "dateExported": "2026-08-24T23:00:00.000Z",
+  "version": "1.1",
+  "folders": [],
+  "requests": [
+    {
+      "name": "Register User (Success)",
+      "url": "http://localhost:5000/api/v1/auth/register",
+      "method": "POST",
+      "sortNum": 10000,
+      "created": "2026-08-24T23:00:00.000Z",
+      "modified": "2026-08-24T23:00:00.000Z",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"fullName\": \"Jane Doe\",\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"Password123\",\n  \"skills\": [\"TypeScript\", \"React\", \"Node.js\"],\n  \"targetRole\": \"Full Stack Engineer\"\n}"
+      }
+    },
+    {
+      "name": "Register User (Validation Error - Weak Password)",
+      "url": "http://localhost:5000/api/v1/auth/register",
+      "method": "POST",
+      "sortNum": 20000,
+      "created": "2026-08-24T23:00:00.000Z",
+      "modified": "2026-08-24T23:00:00.000Z",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"fullName\": \"Jane Doe\",\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"weakpass\"\n}"
+      }
+    },
+    {
+      "name": "Login User (Success)",
+      "url": "http://localhost:5000/api/v1/auth/login",
+      "method": "POST",
+      "sortNum": 30000,
+      "created": "2026-08-24T23:00:00.000Z",
+      "modified": "2026-08-24T23:00:00.000Z",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"Password123\"\n}"
+      }
+    },
+    {
+      "name": "Get Current User (Protected /me)",
+      "url": "http://localhost:5000/api/v1/auth/me",
+      "method": "GET",
+      "sortNum": 40000,
+      "created": "2026-08-24T23:00:00.000Z",
+      "modified": "2026-08-24T23:00:00.000Z",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{YOUR_JWT_TOKEN_HERE}}"
+        }
+      ]
+    },
+    {
+      "name": "Logout User",
+      "url": "http://localhost:5000/api/v1/auth/logout",
+      "method": "POST",
+      "sortNum": 50000,
+      "created": "2026-08-24T23:00:00.000Z",
+      "modified": "2026-08-24T23:00:00.000Z",
+      "headers": []
+    }
+  ]
+}

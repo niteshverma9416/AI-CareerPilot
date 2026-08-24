@@ -1,0 +1,14 @@
+export { HomePage } from "./HomePage";
+export { LoginPage } from "./LoginPage";
+export { RegisterPage } from "./RegisterPage";
+export { DashboardPage } from "./DashboardPage";
+export { ResumePage } from "./ResumePage";
+export { JobMatcherPage } from "./JobMatcherPage";
+export { SkillGapPage } from "./SkillGapPage";
+export { LearningRoadmapPage } from "./LearningRoadmapPage";
+export { AIAssistantPage } from "./AIAssistantPage";
+export { MockInterviewPage } from "./MockInterviewPage";
+export { GitHubAnalyzerPage } from "./GitHubAnalyzerPage";
+export { ProfilePage } from "./ProfilePage";
+export { SettingsPage } from "./SettingsPage";
+export { NotFoundPage } from "./NotFoundPage";
