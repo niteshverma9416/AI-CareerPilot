@@ -2,50 +2,38 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText,
-  Trash2,
-  Download,
   Info,
   Check,
   Sparkles,
-  Search,
-  CloudUpload
+  CloudUpload,
+  Loader2
 } from "lucide-react";
 import toast from "react-hot-toast";
+import {
+  useLatestResumeQuery,
+  useUploadResumeMutation,
+  useDeleteResumeMutation,
+  useAnalyzeResumeMutation
+} from "@/hooks";
 
-type SelectedFile = {
+type LocalPreviewFile = {
   name: string;
   size: string;
   type: string;
-  date: string;
-  score: string;
-  status: string;
 };
 
 export function ResumePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // State for user selected file (starts as null to show upload card prominently)
-  const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
+  // Local selected file state (before uploading)
+  const [selectedRawFile, setSelectedRawFile] = useState<File | null>(null);
+  const [selectedFilePreview, setSelectedFilePreview] = useState<LocalPreviewFile | null>(null);
 
-  // Previous resume history mock
-  const [historyFiles] = useState<SelectedFile[]>([
-    {
-      name: "nitesh_resume_v1.pdf",
-      size: "1.1 MB",
-      type: "application/pdf",
-      date: "Aug 12, 2026",
-      score: "85%",
-      status: "Archived",
-    },
-    {
-      name: "nitesh_resume_draft.docx",
-      size: "940 KB",
-      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      date: "Aug 05, 2026",
-      score: "78%",
-      status: "Archived",
-    },
-  ]);
+  // TanStack Query hooks
+  const { data: latestResume, isLoading: isLatestLoading, isError: isLatestError, error: latestError } = useLatestResumeQuery();
+  const uploadMutation = useUploadResumeMutation();
+  const deleteMutation = useDeleteResumeMutation();
+  const analyzeMutation = useAnalyzeResumeMutation();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -65,59 +53,122 @@ export function ResumePage() {
         return;
       }
 
-      const newFile: SelectedFile = {
+      setSelectedRawFile(file);
+      setSelectedFilePreview({
         name: file.name,
         size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
         type: file.type || "application/octet-stream",
-        date: new Date().toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        }),
-        score: "Calculating...",
-        status: "Processing",
-      };
-
-      setSelectedFile(newFile);
-      toast.success("Resume selected successfully!");
-
-      // Simulate AI score calculation
-      setTimeout(() => {
-        setSelectedFile((prev) => {
-          if (prev && prev.name === file.name) {
-            return {
-              ...prev,
-              score: Math.floor(Math.random() * 15 + 80) + "%",
-              status: "Audited",
-            };
-          }
-          return prev;
-        });
-        toast.success("AI score calculation complete!");
-      }, 3000);
+      });
+      toast.success("Resume selected. Ready for upload!");
     }
   };
 
   const handleChooseClick = () => {
+    if (uploadMutation.isPending) return;
     fileInputRef.current?.click();
   };
 
   const handleRemoveClick = () => {
-    setSelectedFile(null);
+    if (uploadMutation.isPending) return;
+    setSelectedRawFile(null);
+    setSelectedFilePreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-    toast.success("Resume removed.");
+    toast.success("Selection cleared.");
   };
 
-  const handleActionMock = (actionName: string) => {
-    alert(`${actionName} triggered (Simulation Mode).`);
+  const handleUploadClick = () => {
+    if (!selectedRawFile || uploadMutation.isPending) return;
+
+    uploadMutation.mutate(selectedRawFile, {
+      onSuccess: () => {
+        setSelectedRawFile(null);
+        setSelectedFilePreview(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        toast.success("Resume uploaded successfully!");
+      },
+      onError: (error: any) => {
+        const errorMsg = error.response?.data?.message || error.message || "Failed to upload resume.";
+        toast.error(errorMsg);
+      },
+    });
   };
+
+  const handleDeleteClick = (id: string) => {
+    if (deleteMutation.isPending) return;
+    if (confirm("Are you sure you want to remove your active resume?")) {
+      deleteMutation.mutate(id, {
+        onSuccess: () => {
+          toast.success("Resume removed successfully.");
+        },
+        onError: (error: any) => {
+          toast.error(error.response?.data?.message || "Failed to remove resume.");
+        },
+      });
+    }
+  };
+
+  const handleAnalyzeClick = (id: string) => {
+    if (analyzeMutation.isPending) return;
+    toast.loading("Analyzing resume using AI...", { id: "analyze" });
+    analyzeMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success("AI Analysis complete!", { id: "analyze" });
+      },
+      onError: (error: any) => {
+        toast.error(error.response?.data?.message || "Failed to complete AI Analysis.", { id: "analyze" });
+      },
+    });
+  };
+
+  // 1. Loading Skeleton States
+  if (isLatestLoading) {
+    return (
+      <div className="space-y-8 pb-10 animate-pulse">
+        {/* Banner Skeleton */}
+        <div className="h-44 bg-slate-800/30 rounded-[24px]" />
+        
+        {/* Main Columns Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <div className="h-56 bg-slate-800/30 rounded-[24px]" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="h-24 bg-slate-800/30 rounded-2xl" />
+              <div className="h-24 bg-slate-800/30 rounded-2xl" />
+              <div className="h-24 bg-slate-800/30 rounded-2xl" />
+              <div className="h-24 bg-slate-800/30 rounded-2xl" />
+            </div>
+            <div className="h-44 bg-slate-800/30 rounded-[24px]" />
+          </div>
+          
+          <div className="lg:col-span-1 space-y-6">
+            <div className="h-64 bg-slate-800/30 rounded-[24px]" />
+            <div className="h-48 bg-slate-800/30 rounded-[24px]" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. API Failure Error States
+  if (isLatestError && latestError) {
+    return (
+      <div className="p-8 rounded-[24px] border border-red-500/20 bg-red-500/5 text-center space-y-4">
+        <h2 className="text-lg font-bold text-red-400">Failed to fetch resume</h2>
+        <p className="text-xs text-slate-400">
+          {(latestError as any).response?.data?.message || latestError.message || "An unexpected network error occurred."}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-10">
       
-      {/* 1. Hero Welcome Header Banner */}
+      {/* Hero Welcome Header Banner */}
       <div className="p-8 rounded-[24px] border border-slate-800 bg-gradient-to-r from-[#0F172A] via-[#090F1E] to-[#0F172A] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-indigo-500/5 blur-[60px] pointer-events-none rounded-full" />
         <div className="relative z-10 space-y-2">
@@ -132,43 +183,140 @@ export function ResumePage() {
         </div>
       </div>
 
-      {/* 2. Split-screen Layout Grid */}
+      {/* Split-screen Layout Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left Columns (Upload zone, preview panel, stats, history) */}
+        {/* Left Columns */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* 2a. Prominent Resume Upload Card at the top */}
-          <div className="p-6 md:p-8 rounded-[24px] border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-6">
-            <div className="flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-slate-800 hover:border-indigo-500/40 hover:bg-indigo-500/[0.02] transition-all cursor-pointer group" onClick={handleChooseClick}>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept=".pdf,.doc,.docx"
-                className="hidden"
-                aria-label="Upload resume file"
-              />
-              <span className="p-4 rounded-full bg-slate-900 border border-slate-850 text-slate-500 group-hover:text-indigo-400 group-hover:border-indigo-500/30 transition-all shadow-inner">
-                <CloudUpload className="h-7 w-7" />
-              </span>
-              <h3 className="text-sm font-bold text-slate-200 mt-4">Drag & Drop your Resume here</h3>
-              <p className="text-xs text-slate-500 mt-1.5 leading-normal">
-                Supported formats: PDF, DOCX (Maximum 5 MB)
-              </p>
-              
-              <button
-                type="button"
-                className="mt-6 px-6 py-2.5 rounded-xl bg-indigo-500 text-xs font-semibold text-white shadow-md hover:bg-indigo-600 hover:scale-102 active:scale-98 transition-all"
+          {/* Render upload dropzone conditionally if no resume is stored on database */}
+          {!latestResume ? (
+            <div className="p-6 md:p-8 rounded-[24px] border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-6">
+              <div 
+                className={`flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-slate-800 transition-all cursor-pointer group ${
+                  uploadMutation.isPending ? "opacity-50 cursor-not-allowed" : "hover:border-indigo-500/40 hover:bg-indigo-500/[0.02]"
+                }`}
+                onClick={handleChooseClick}
               >
-                Choose Resume
-              </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx"
+                  className="hidden"
+                  disabled={uploadMutation.isPending}
+                  aria-label="Upload resume file"
+                />
+                <span className="p-4 rounded-full bg-slate-900 border border-slate-850 text-slate-500 group-hover:text-indigo-400 group-hover:border-indigo-500/30 transition-all shadow-inner">
+                  <CloudUpload className="h-7 w-7" />
+                </span>
+                <h3 className="text-sm font-bold text-slate-200 mt-4">Drag & Drop your Resume here</h3>
+                <p className="text-xs text-slate-500 mt-1.5 leading-normal">
+                  Supported formats: PDF, DOCX (Maximum 5 MB)
+                </p>
+                
+                <button
+                  type="button"
+                  disabled={uploadMutation.isPending}
+                  className="mt-6 px-6 py-2.5 rounded-xl bg-indigo-500 text-xs font-semibold text-white shadow-md hover:bg-indigo-600 hover:scale-102 active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Choose Resume
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Active Resume Details card (rendered when latestResume exists) */
+            <div className="p-6 rounded-[24px] border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-6">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Resume Details</h3>
+              <div className="p-5 rounded-2xl border border-slate-850 bg-slate-950/40 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4 min-w-0">
+                  <span className="p-3.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
+                    <FileText className="h-6 w-6" />
+                  </span>
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-bold text-slate-100 truncate pr-2">
+                      {latestResume.originalName}
+                    </h4>
+                    <p className="text-[10px] text-slate-500 mt-1.5 leading-none">
+                      Size: {(latestResume.fileSize / (1024 * 1024)).toFixed(2)} MB • Uploaded: {new Date(latestResume.uploadedAt || latestResume.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
 
-          {/* 2b. Conditional Preview Card (below the upload area) */}
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-right hidden sm:block">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">ATS Score</span>
+                    <span className="text-sm font-extrabold text-indigo-400">
+                      {latestResume.atsScore ? `${latestResume.atsScore}%` : "Pending"}
+                    </span>
+                  </div>
+                  <div className="h-10 w-10 rounded-full border-2 border-indigo-500/30 flex items-center justify-center text-xs font-bold text-white relative">
+                    <span className="absolute inset-0 rounded-full border-2 border-t-indigo-500 border-r-indigo-500 border-b-indigo-500 border-l-transparent" />
+                    {latestResume.atsScore ? latestResume.atsScore : "--"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Operational Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx"
+                  className="hidden"
+                  disabled={uploadMutation.isPending}
+                />
+                
+                <button
+                  type="button"
+                  onClick={handleChooseClick}
+                  disabled={uploadMutation.isPending}
+                  className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-850 bg-slate-900/50 hover:bg-slate-900 text-xs font-semibold text-slate-300 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Replace Resume
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDeleteClick(latestResume._id)}
+                  disabled={deleteMutation.isPending}
+                  className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-xs font-semibold text-red-400 transition-all disabled:opacity-50"
+                >
+                  {deleteMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Removing...
+                    </>
+                  ) : (
+                    "Remove Resume"
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleAnalyzeClick(latestResume._id)}
+                  disabled={analyzeMutation.isPending || latestResume.analysisStatus === "completed"}
+                  className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-xs font-semibold text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {analyzeMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : latestResume.analysisStatus === "completed" ? (
+                    "Audited"
+                  ) : (
+                    "Analyze Resume"
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Conditional Local Preview Card (for selected files waiting to upload) */}
           <AnimatePresence>
-            {selectedFile && (
+            {selectedFilePreview && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
@@ -177,7 +325,7 @@ export function ResumePage() {
                 className="overflow-hidden"
               >
                 <div className="p-6 rounded-[24px] border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-6">
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">File Preview</h3>
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Local Selection Preview</h3>
                   
                   <div className="p-5 rounded-2xl border border-slate-850 bg-slate-950/40 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4 min-w-0">
@@ -186,32 +334,46 @@ export function ResumePage() {
                       </span>
                       <div className="min-w-0">
                         <h4 className="text-sm font-bold text-slate-100 truncate pr-2">
-                          {selectedFile.name}
+                          {selectedFilePreview.name}
                         </h4>
                         <p className="text-[10px] text-slate-500 mt-1.5 leading-none">
-                          Size: {selectedFile.size} • Type: {selectedFile.type}
+                          Size: {selectedFilePreview.size} • Type: {selectedFilePreview.type}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0">
-                      <div className="text-right hidden sm:block">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Score</span>
-                        <span className="text-sm font-extrabold text-indigo-400">{selectedFile.score}</span>
-                      </div>
-                      <div className="h-10 w-10 rounded-full border-2 border-indigo-500/30 flex items-center justify-center text-xs font-bold text-white relative">
-                        <span className="absolute inset-0 rounded-full border-2 border-t-indigo-500 border-r-indigo-500 border-b-indigo-500 border-l-transparent animate-spin-slow" />
-                        {selectedFile.score !== "Calculating..." ? selectedFile.score.replace("%", "") : "--"}
-                      </div>
+                      {uploadMutation.isPending && (
+                        <Loader2 className="h-6 w-6 text-indigo-400 animate-spin" />
+                      )}
                     </div>
                   </div>
 
-                  {/* Operational Buttons */}
-                  <div className="grid grid-cols-3 gap-3">
+                  {/* Progress Indicator */}
+                  {uploadMutation.isPending && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                        <span>Uploading file...</span>
+                        <span>In progress</span>
+                      </div>
+                      <div className="w-full bg-slate-850 rounded-full h-1.5 overflow-hidden">
+                        <motion.div
+                          initial={{ width: "5%" }}
+                          animate={{ width: "95%" }}
+                          transition={{ duration: 2 }}
+                          className="bg-indigo-500 h-full"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upload Actions */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <button
                       type="button"
                       onClick={handleChooseClick}
-                      className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-850 bg-slate-900/50 hover:bg-slate-900 text-xs font-semibold text-slate-300 hover:text-white transition-all"
+                      disabled={uploadMutation.isPending}
+                      className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-850 bg-slate-900/50 hover:bg-slate-900 text-xs font-semibold text-slate-300 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Replace Resume
                     </button>
@@ -219,18 +381,26 @@ export function ResumePage() {
                     <button
                       type="button"
                       onClick={handleRemoveClick}
-                      className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-xs font-semibold text-red-400 transition-all"
+                      disabled={uploadMutation.isPending}
+                      className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-xs font-semibold text-red-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Remove Resume
                     </button>
 
                     <button
                       type="button"
-                      disabled
-                      className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-800/40 text-slate-500 text-xs font-semibold cursor-not-allowed border border-slate-800"
+                      onClick={handleUploadClick}
+                      disabled={uploadMutation.isPending || !selectedRawFile}
+                      className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-xs font-semibold text-white shadow-md hover:scale-102 active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Search className="h-4 w-4" />
-                      Analyze Resume
+                      {uploadMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                          Uploading...
+                        </>
+                      ) : (
+                        "Upload Resume"
+                      )}
                     </button>
                   </div>
                 </div>
@@ -238,99 +408,58 @@ export function ResumePage() {
             )}
           </AnimatePresence>
 
-          {/* 2c. Statistics Grid */}
+          {/* Statistics Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="p-5 rounded-2xl border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-1">
               <span className="text-[10px] block font-bold text-slate-500 uppercase tracking-wider">Current Resume</span>
               <p className="text-xs font-bold text-white truncate max-w-full pt-2">
-                {selectedFile ? selectedFile.name : "None Selected"}
+                {latestResume ? latestResume.originalName : "None Selected"}
               </p>
             </div>
 
             <div className="p-5 rounded-2xl border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-1">
               <span className="text-[10px] block font-bold text-slate-500 uppercase tracking-wider">ATS Score</span>
               <p className="text-lg font-extrabold text-white pt-1">
-                {selectedFile ? selectedFile.score : "--"}
+                {latestResume && latestResume.atsScore ? `${latestResume.atsScore}%` : "--"}
               </p>
             </div>
 
             <div className="p-5 rounded-2xl border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-1">
               <span className="text-[10px] block font-bold text-slate-500 uppercase tracking-wider">Last Updated</span>
               <p className="text-xs font-bold text-slate-200 pt-2">
-                {selectedFile ? selectedFile.date : "--"}
+                {latestResume 
+                  ? new Date(latestResume.updatedAt || latestResume.uploadedAt).toLocaleDateString() 
+                  : "--"}
               </p>
             </div>
 
             <div className="p-5 rounded-2xl border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-1">
               <span className="text-[10px] block font-bold text-slate-500 uppercase tracking-wider">Resume Status</span>
               <span className={`inline-flex items-center px-2 py-0.5 mt-2 rounded-full text-[10px] font-semibold ${
-                selectedFile?.status === "Audited"
+                latestResume?.analysisStatus === "completed"
                   ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-                  : selectedFile?.status === "Processing"
+                  : latestResume?.analysisStatus === "processing"
                   ? "bg-indigo-500/10 border border-indigo-500/20 text-indigo-400"
+                  : latestResume?.analysisStatus === "pending"
+                  ? "bg-amber-500/10 border border-amber-500/20 text-amber-400"
                   : "bg-slate-900 border border-slate-800 text-slate-400"
               }`}>
-                {selectedFile ? selectedFile.status : "N/A"}
+                {latestResume ? latestResume.analysisStatus : "N/A"}
               </span>
             </div>
           </div>
 
-          {/* 2d. Resume History List */}
+          {/* History Lists */}
           <div className="p-6 md:p-8 rounded-[24px] border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Resume History</h3>
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{historyFiles.length} versions archived</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Archived versions</span>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-              {historyFiles.map((file) => (
-                <div
-                  key={file.name}
-                  className="p-4 rounded-xl border border-slate-850/60 bg-slate-900/20 hover:border-slate-800 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="p-2 rounded-lg bg-slate-950/60 text-slate-500 border border-slate-850/40">
-                      <FileText className="h-4.5 w-4.5" />
-                    </span>
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-200 truncate pr-2 max-w-[200px] sm:max-w-xs">
-                        {file.name}
-                      </h4>
-                      <p className="text-[10px] text-slate-500 mt-0.5">
-                        Uploaded on {file.date} • {file.size}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between w-full sm:w-auto gap-4 pt-2 sm:pt-0 border-t border-slate-800/40 sm:border-t-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ATS Score</span>
-                      <span className="text-xs font-bold text-indigo-400 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
-                        {file.score}
-                      </span>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleActionMock("Download version")}
-                        className="p-2 rounded-lg border border-slate-800 hover:bg-slate-900 hover:border-slate-700 text-slate-400 hover:text-white transition-colors"
-                        aria-label="Download version"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleActionMock("Delete version")}
-                        className="p-2 rounded-lg border border-red-500/10 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors"
-                        aria-label="Delete version"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              <div className="text-center py-6 text-slate-500 text-xs border border-slate-850/60 rounded-xl bg-slate-950/20">
+                Archived drafts are loaded dynamically once versions are saved.
+              </div>
             </div>
           </div>
 

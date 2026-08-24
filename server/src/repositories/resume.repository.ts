@@ -17,6 +17,13 @@ export class ResumeRepository {
   }
 
   /**
+   * Fetch the latest resume uploaded by a specific user.
+   */
+  async findLatestByUserId(userId: string): Promise<IResumeDocument | null> {
+    return Resume.findOne({ userId }).sort({ createdAt: -1 });
+  }
+
+  /**
    * Fetch a single resume record by its unique ID.
    */
   async findById(id: string): Promise<IResumeDocument | null> {

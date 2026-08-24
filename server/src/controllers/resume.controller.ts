@@ -5,8 +5,8 @@ import { ApiError } from "@/utils/ApiError";
 
 export class ResumeController {
   /**
-   * POST /api/v1/resumes
-   * Mock upload resume metadata and persist it.
+   * POST /api/v1/resume/upload
+   * Handle resume file upload, save metadata to MongoDB.
    */
   uploadResume = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -20,16 +20,18 @@ export class ResumeController {
       }
 
       const fileMeta = {
-        name: req.file.originalname,
+        name: req.file.filename,
+        originalName: req.file.originalname,
         size: req.file.size,
         mimeType: req.file.mimetype,
+        url: `/uploads/${req.file.filename}`,
       };
 
       const resume = await resumeService.uploadResume(userId, fileMeta);
 
       res.status(HTTP_STATUS.CREATED).json({
         success: true,
-        message: "Resume metadata uploaded successfully",
+        message: "Resume uploaded successfully",
         resume,
       });
     } catch (error) {
@@ -38,7 +40,7 @@ export class ResumeController {
   };
 
   /**
-   * GET /api/v1/resumes
+   * GET /api/v1/resume
    * Fetch all resumes belonging to the authenticated user.
    */
   getAllResumes = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -60,7 +62,29 @@ export class ResumeController {
   };
 
   /**
-   * GET /api/v1/resumes/:id
+   * GET /api/v1/resume (Latest)
+   * Fetch the latest resume uploaded by the authenticated user.
+   */
+  getLatestResume = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?._id?.toString() || req.user?.id;
+      if (!userId) {
+        throw ApiError.unauthorized("Authentication required");
+      }
+
+      const resume = await resumeService.getLatestResume(userId);
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        resume,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * GET /api/v1/resume/:id
    * Fetch a single resume record by ID, checking ownership.
    */
   getResumeById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -83,7 +107,7 @@ export class ResumeController {
   };
 
   /**
-   * DELETE /api/v1/resumes/:id
+   * DELETE /api/v1/resume/:id
    * Delete a resume record by ID, checking ownership.
    */
   deleteResume = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -103,7 +127,7 @@ export class ResumeController {
   };
 
   /**
-   * POST /api/v1/resumes/:id/analyze
+   * POST /api/v1/resume/:id/analyze
    * Analyze a resume (simulate AI keyword match analysis and score).
    */
   analyzeResume = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

@@ -14,15 +14,21 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ) {
-  const statusCode =
+  let statusCode =
     err instanceof ApiError
       ? err.statusCode
       : HTTP_STATUS.INTERNAL_SERVER_ERROR;
 
-  const message =
+  let message =
     err instanceof ApiError ? err.message : MESSAGES.INTERNAL_ERROR;
 
-  const details = err instanceof ApiError ? err.details : undefined;
+  let details = err instanceof ApiError ? err.details : undefined;
+
+  // Intercept Multer validation/limit errors and format them as proper BAD_REQUEST validation errors
+  if (err.name === "MulterError" || err.message.includes("Multer") || err.message.includes("Only PDF, DOC, and DOCX")) {
+    statusCode = HTTP_STATUS.BAD_REQUEST;
+    message = err.message;
+  }
 
   logger.error(err.message, {
     statusCode,

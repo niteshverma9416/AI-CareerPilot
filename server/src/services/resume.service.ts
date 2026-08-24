@@ -10,13 +10,13 @@ export class ResumeService {
    */
   async uploadResume(
     userId: string,
-    fileMeta: { name: string; size: number; mimeType?: string; url?: string }
+    fileMeta: { name: string; originalName: string; size: number; mimeType?: string; url?: string }
   ): Promise<IResumeDocument> {
     const resumeData = {
       userId: new Types.ObjectId(userId),
-      fileName: `${Date.now()}-${fileMeta.name}`,
-      originalName: fileMeta.name,
-      fileUrl: fileMeta.url || `https://api.carrerpilot.local/uploads/${Date.now()}-${fileMeta.name}`,
+      fileName: fileMeta.name,
+      originalName: fileMeta.originalName,
+      fileUrl: fileMeta.url || `/uploads/${fileMeta.name}`,
       fileType: fileMeta.mimeType || "application/pdf",
       fileSize: fileMeta.size,
       storageProvider: "local",
@@ -33,6 +33,17 @@ export class ResumeService {
    */
   async getAllResumes(userId: string): Promise<IResumeDocument[]> {
     return resumeRepository.findAllByUserId(userId);
+  }
+
+  /**
+   * Get the latest resume for a specific user.
+   */
+  async getLatestResume(userId: string): Promise<IResumeDocument> {
+    const resume = await resumeRepository.findLatestByUserId(userId);
+    if (!resume) {
+      throw ApiError.notFound("No resume uploaded yet");
+    }
+    return resume;
   }
 
   /**

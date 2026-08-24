@@ -7,6 +7,6 @@ const v1Router = Router();
 
 v1Router.use(healthRouter);
 v1Router.use("/auth", authRouter);
-v1Router.use("/resumes", resumeRouter);
+v1Router.use("/resume", resumeRouter);
 
 export { v1Router };
