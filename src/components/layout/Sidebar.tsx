@@ -1,6 +1,5 @@
-import { NavLink } from "react-router";
-import { LogOut, X } from "lucide-react";
-import { Logo } from "@/components/common";
+import { NavLink, useNavigate } from "react-router";
+import { LogOut, X, Compass } from "lucide-react";
 import { accountNavItems, mainNavItems, paths } from "@/constants";
 import type { NavItem } from "@/types";
 import { cn } from "@/utils/cn";
@@ -21,7 +20,7 @@ function NavSection({
 }) {
   return (
     <div className="space-y-1">
-      <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+      <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
         {title}
       </p>
       {items.map((item) => (
@@ -31,14 +30,14 @@ function NavSection({
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300 relative group",
               isActive
-                ? "bg-brand-50 text-brand-700 dark:bg-brand-600/15 dark:text-brand-100"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white",
+                ? "bg-indigo-500/10 text-indigo-400 border-l-2 border-indigo-500 pl-4"
+                : "text-slate-400 hover:bg-slate-900/60 hover:text-slate-100 hover:pl-4",
             )
           }
         >
-          <item.icon className="h-4.5 w-4.5 h-4 w-4 shrink-0" />
+          <item.icon className="h-4.5 w-4.5 shrink-0 transition-transform group-hover:scale-110" />
           {item.label}
         </NavLink>
       ))}
@@ -47,13 +46,21 @@ function NavSection({
 }
 
 export function Sidebar({ open, onClose }: SidebarProps) {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate(paths.login);
+  };
+
   return (
     <>
+      {/* Mobile Drawer Overlay */}
       <button
         type="button"
         aria-label="Close sidebar overlay"
         className={cn(
-          "fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-[2px] transition-opacity lg:hidden",
+          "fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-[2px] transition-opacity lg:hidden",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={onClose}
@@ -61,15 +68,23 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-200/80 bg-white transition-transform duration-200 dark:border-slate-800 dark:bg-slate-950 lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-900 bg-[#070D19]/95 backdrop-blur-md transition-transform duration-300 ease-in-out lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-16 items-center justify-between px-5">
-          <Logo to={paths.dashboard} />
+        {/* Sidebar Header Brand Logo */}
+        <div className="flex h-16 items-center justify-between px-5 border-b border-slate-900/60">
+          <NavLink to={paths.dashboard} className="inline-flex items-center gap-2.5 group">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]">
+              <Compass className="h-4.5 w-4.5" />
+            </span>
+            <span className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">
+              AI CareerPilot
+            </span>
+          </NavLink>
           <button
             type="button"
-            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-800"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-900/80 lg:hidden"
             onClick={onClose}
             aria-label="Close sidebar"
           >
@@ -77,17 +92,20 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
+        {/* Sidebar Navigation Options */}
+        <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-6 scrollbar-thin">
           <NavSection title="Workspace" items={mainNavItems} onNavigate={onClose} />
           <NavSection title="Account" items={accountNavItems} onNavigate={onClose} />
         </nav>
 
-        <div className="border-t border-slate-200 p-3 dark:border-slate-800">
+        {/* Sidebar Footer Logout Button */}
+        <div className="border-t border-slate-900 p-3">
           <button
             type="button"
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-300"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4.5 w-4.5 shrink-0" />
             Logout
           </button>
         </div>
@@ -95,3 +113,4 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     </>
   );
 }
+export default Sidebar;
