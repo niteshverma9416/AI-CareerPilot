@@ -10,16 +10,19 @@ export class ResumeService {
    */
   async uploadResume(
     userId: string,
-    fileMeta: { name: string; size: number; key?: string; url?: string }
+    fileMeta: { name: string; size: number; mimeType?: string; url?: string }
   ): Promise<IResumeDocument> {
     const resumeData = {
       userId: new Types.ObjectId(userId),
-      fileName: fileMeta.name,
-      fileKey: fileMeta.key || `${Date.now()}-${fileMeta.name}`,
-      fileSize: fileMeta.size,
+      fileName: `${Date.now()}-${fileMeta.name}`,
+      originalName: fileMeta.name,
       fileUrl: fileMeta.url || `https://api.carrerpilot.local/uploads/${Date.now()}-${fileMeta.name}`,
+      fileType: fileMeta.mimeType || "application/pdf",
+      fileSize: fileMeta.size,
+      storageProvider: "local",
+      analysisStatus: "pending",
       atsScore: undefined,
-      analysis: undefined,
+      resumeScore: undefined,
     };
 
     return resumeRepository.create(resumeData);
@@ -65,16 +68,12 @@ export class ResumeService {
     
     // Generate simulated AI analysis results
     const mockScore = Math.floor(Math.random() * 20) + 75; // 75 - 95
-    const mockAnalysis = JSON.stringify({
-      score: mockScore,
-      summary: "Resume formatting matches target standards. Suggested keyword alignment is complete.",
-      missingKeywords: ["Docker", "Kubernetes", "Next.js", "Zod"],
-      strengths: ["Clean sections headers layout", "Rich experience descriptions"],
-    });
+    const mockResumeScore = Math.floor(Math.random() * 15) + 80; // 80 - 95
 
     const updated = await resumeRepository.update(resume._id.toString(), {
       atsScore: mockScore,
-      analysis: mockAnalysis,
+      resumeScore: mockResumeScore,
+      analysisStatus: "completed",
     });
 
     if (!updated) {

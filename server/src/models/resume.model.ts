@@ -16,26 +16,45 @@ const resumeSchema = new Schema<IResumeDocument>(
       required: [true, "File name is required"],
       trim: true,
     },
-    fileKey: {
+    originalName: {
       type: String,
-      required: [true, "File key is required"],
+      required: [true, "Original name is required"],
+      trim: true,
+    },
+    fileUrl: {
+      type: String,
+      required: [true, "File URL is required"],
+      trim: true,
+    },
+    fileType: {
+      type: String,
+      required: [true, "File type is required"],
       trim: true,
     },
     fileSize: {
       type: Number,
       required: [true, "File size is required"],
     },
-    fileUrl: {
+    storageProvider: {
       type: String,
-      required: [true, "File URL is required"],
+      default: "local",
+    },
+    analysisStatus: {
+      type: String,
+      enum: ["pending", "processing", "completed", "failed"],
+      default: "pending",
     },
     atsScore: {
       type: Number,
       default: null,
     },
-    analysis: {
-      type: String,
+    resumeScore: {
+      type: Number,
       default: null,
+    },
+    uploadedAt: {
+      type: Date,
+      default: Date.now,
     },
   },
   {
@@ -45,3 +64,4 @@ const resumeSchema = new Schema<IResumeDocument>(
 );
 
 export const Resume = model<IResumeDocument>("Resume", resumeSchema);
+export default Resume;

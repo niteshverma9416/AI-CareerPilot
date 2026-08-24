@@ -22,6 +22,7 @@ export class ResumeController {
       const fileMeta = {
         name: req.file.originalname,
         size: req.file.size,
+        mimeType: req.file.mimetype,
       };
 
       const resume = await resumeService.uploadResume(userId, fileMeta);

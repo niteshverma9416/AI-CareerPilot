@@ -3,11 +3,15 @@ import { Types } from "mongoose";
 export interface IResume {
   userId: Types.ObjectId;
   fileName: string;
-  fileKey: string;
-  fileSize: number;
+  originalName: string;
   fileUrl: string;
+  fileType: string;
+  fileSize: number;
+  storageProvider?: string;
+  analysisStatus?: "pending" | "processing" | "completed" | "failed" | string;
   atsScore?: number;
-  analysis?: string;
+  resumeScore?: number;
+  uploadedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
