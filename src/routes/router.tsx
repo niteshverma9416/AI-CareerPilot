@@ -5,7 +5,7 @@ import {
   AIAssistantPage,
   DashboardPage,
   GitHubAnalyzerPage,
-  HomePage,
+  LandingPage,
   JobMatcherPage,
   LearningRoadmapPage,
   LoginPage,
@@ -28,7 +28,7 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <PublicLayout />,
-        children: [{ path: paths.home, element: <HomePage /> }],
+        children: [{ path: paths.home, element: <LandingPage /> }],
       },
       {
         element: <AuthLayout />,

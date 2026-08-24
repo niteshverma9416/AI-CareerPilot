@@ -1,0 +1,12 @@
+export { Navbar } from "./Navbar";
+export { Hero } from "./Hero";
+export { TrustedTech } from "./TrustedTech";
+export { Features } from "./Features";
+export { HowItWorks } from "./HowItWorks";
+export { WhyChooseUs } from "./WhyChooseUs";
+export { Statistics } from "./Statistics";
+export { Testimonials } from "./Testimonials";
+export { Pricing } from "./Pricing";
+export { FAQ } from "./FAQ";
+export { CTA } from "./CTA";
+export { Footer } from "./Footer";
