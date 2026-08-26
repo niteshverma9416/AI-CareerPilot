@@ -23,3 +23,21 @@ export const createResumeMetadataSchema = z.object({
     analysisStatus: z.enum(["pending", "processing", "completed", "failed"]).optional(),
   }),
 });
+
+/**
+ * Validator schema for resume history query parameters (pagination)
+ */
+export const resumeHistoryQuerySchema = z.object({
+  query: z
+    .object({
+      page: z
+        .string()
+        .regex(/^[1-9]\d*$/, "Page must be a positive integer")
+        .optional(),
+      limit: z
+        .string()
+        .regex(/^[1-9]\d*$/, "Limit must be a positive integer")
+        .optional(),
+    })
+    .optional(),
+});

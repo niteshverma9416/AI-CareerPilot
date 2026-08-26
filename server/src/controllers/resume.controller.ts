@@ -62,6 +62,34 @@ export class ResumeController {
   };
 
   /**
+   * GET /api/v1/resume/history
+   * Fetch paginated resume history for the authenticated user.
+   */
+  getResumeHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?._id?.toString() || req.user?.id;
+      if (!userId) {
+        throw ApiError.unauthorized("Authentication required");
+      }
+
+      const page = req.query.page ? Math.max(1, parseInt(req.query.page as string, 10)) : 1;
+      const limit = req.query.limit ? Math.max(1, parseInt(req.query.limit as string, 10)) : 10;
+
+      const history = await resumeService.getResumeHistory(userId, page, limit);
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        currentPage: history.currentPage,
+        totalPages: history.totalPages,
+        totalResumes: history.totalResumes,
+        resumes: history.resumes,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
    * GET /api/v1/resume (Latest)
    * Fetch the latest resume uploaded by the authenticated user.
    */

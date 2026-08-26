@@ -7,3 +7,5 @@ export type NavItem = {
 };
 
 export type Theme = "light" | "dark";
+
+export * from "./resume.types";

@@ -36,12 +36,44 @@ export class ResumeService {
   }
 
   /**
+   * Get paginated resume history for a user, sorted by uploadedAt descending.
+   */
+  async getResumeHistory(
+    userId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{
+    currentPage: number;
+    totalPages: number;
+    totalResumes: number;
+    resumes: IResumeDocument[];
+  }> {
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.max(1, limit);
+
+    const { resumes, totalResumes } = await resumeRepository.findHistoryByUserId(
+      userId,
+      safePage,
+      safeLimit
+    );
+
+    const totalPages = totalResumes > 0 ? Math.ceil(totalResumes / safeLimit) : 0;
+
+    return {
+      currentPage: safePage,
+      totalPages,
+      totalResumes,
+      resumes,
+    };
+  }
+
+  /**
    * Get the latest resume for a specific user.
    */
   async getLatestResume(userId: string): Promise<IResumeDocument> {
     const resume = await resumeRepository.findLatestByUserId(userId);
     if (!resume) {
-      throw ApiError.notFound("No resume uploaded yet");
+      throw ApiError.notFound("No resume found.");
     }
     return resume;
   }

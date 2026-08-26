@@ -15,3 +15,10 @@ export interface IResume {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export interface IPaginatedResumeHistory<T = IResume> {
+  currentPage: number;
+  totalPages: number;
+  totalResumes: number;
+  resumes: T[];
+}

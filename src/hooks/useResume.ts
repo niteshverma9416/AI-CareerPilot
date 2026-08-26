@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { resumeApi } from "@/services/api/resumeApi";
+import type { IResume } from "@/types";
 
 /**
  * Hook to manage fetching the user's latest resume.
- * Converts 404 response errors into a successful null state (representing an empty state).
+ * Converts 404 response errors into a successful null state (representing no resume found).
  */
 export function useLatestResumeQuery() {
-  return useQuery({
+  return useQuery<IResume | null, Error>({
     queryKey: ["latestResume"],
     queryFn: async () => {
       try {
@@ -36,6 +37,16 @@ export function useResumesQuery() {
   return useQuery({
     queryKey: ["resumes"],
     queryFn: () => resumeApi.getAllResumes(),
+  });
+}
+
+/**
+ * Hook to manage fetching paginated resume history.
+ */
+export function useResumeHistoryQuery(page = 1, limit = 10) {
+  return useQuery({
+    queryKey: ["resumeHistory", page, limit],
+    queryFn: () => resumeApi.getResumeHistory(page, limit),
   });
 }
 

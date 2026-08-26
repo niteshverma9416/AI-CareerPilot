@@ -17,10 +17,30 @@ export class ResumeRepository {
   }
 
   /**
-   * Fetch the latest resume uploaded by a specific user.
+   * Fetch paginated resumes uploaded by a specific user (sorted by uploadedAt descending).
+   */
+  async findHistoryByUserId(
+    userId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ resumes: IResumeDocument[]; totalResumes: number }> {
+    const skip = (page - 1) * limit;
+    const [resumes, totalResumes] = await Promise.all([
+      Resume.find({ userId })
+        .sort({ uploadedAt: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Resume.countDocuments({ userId }),
+    ]);
+
+    return { resumes, totalResumes };
+  }
+
+  /**
+   * Fetch the latest resume uploaded by a specific user (sorted by uploadedAt descending).
    */
   async findLatestByUserId(userId: string): Promise<IResumeDocument | null> {
-    return Resume.findOne({ userId }).sort({ createdAt: -1 });
+    return Resume.findOne({ userId }).sort({ uploadedAt: -1, createdAt: -1 });
   }
 
   /**

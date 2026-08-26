@@ -6,7 +6,8 @@ import {
   Check,
   Sparkles,
   CloudUpload,
-  Loader2
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -15,6 +16,7 @@ import {
   useDeleteResumeMutation,
   useAnalyzeResumeMutation
 } from "@/hooks";
+import { formatDate, formatFileSize, formatFileType } from "@/utils";
 
 type LocalPreviewFile = {
   name: string;
@@ -30,7 +32,14 @@ export function ResumePage() {
   const [selectedFilePreview, setSelectedFilePreview] = useState<LocalPreviewFile | null>(null);
 
   // TanStack Query hooks
-  const { data: latestResume, isLoading: isLatestLoading, isError: isLatestError, error: latestError } = useLatestResumeQuery();
+  const { 
+    data: latestResume, 
+    isLoading: isLatestLoading, 
+    isError: isLatestError, 
+    error: latestError,
+    refetch: refetchLatest 
+  } = useLatestResumeQuery();
+
   const uploadMutation = useUploadResumeMutation();
   const deleteMutation = useDeleteResumeMutation();
   const analyzeMutation = useAnalyzeResumeMutation();
@@ -56,8 +65,8 @@ export function ResumePage() {
       setSelectedRawFile(file);
       setSelectedFilePreview({
         name: file.name,
-        size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
-        type: file.type || "application/octet-stream",
+        size: formatFileSize(file.size),
+        type: formatFileType(file.type || extension || "Document"),
       });
       toast.success("Resume selected. Ready for upload!");
     }
@@ -153,14 +162,22 @@ export function ResumePage() {
     );
   }
 
-  // 2. API Failure Error States
+  // 2. API Failure Error States (Non-404 errors)
   if (isLatestError && latestError) {
     return (
       <div className="p-8 rounded-[24px] border border-red-500/20 bg-red-500/5 text-center space-y-4">
-        <h2 className="text-lg font-bold text-red-400">Failed to fetch resume</h2>
+        <h2 className="text-lg font-bold text-red-400">Failed to load resume</h2>
         <p className="text-xs text-slate-400">
           {(latestError as any).response?.data?.message || latestError.message || "An unexpected network error occurred."}
         </p>
+        <button
+          type="button"
+          onClick={() => refetchLatest()}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition-all"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Retry Connection
+        </button>
       </div>
     );
   }
@@ -189,7 +206,7 @@ export function ResumePage() {
         {/* Left Columns */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* Render upload dropzone conditionally if no resume is stored on database */}
+          {/* Render upload dropzone if no resume exists (404 state) */}
           {!latestResume ? (
             <div className="p-6 md:p-8 rounded-[24px] border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-6">
               <div 
@@ -227,23 +244,41 @@ export function ResumePage() {
           ) : (
             /* Active Resume Details card (rendered when latestResume exists) */
             <div className="p-6 rounded-[24px] border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-6">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Resume Details</h3>
-              <div className="p-5 rounded-2xl border border-slate-850 bg-slate-950/40 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4 min-w-0">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Resume Details</h3>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${
+                  latestResume.analysisStatus === "completed"
+                    ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                    : latestResume.analysisStatus === "processing"
+                    ? "bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 animate-pulse"
+                    : latestResume.analysisStatus === "failed"
+                    ? "bg-red-500/10 border border-red-500/20 text-red-400"
+                    : "bg-amber-500/10 border border-amber-500/20 text-amber-400"
+                }`}>
+                  {latestResume.analysisStatus || "pending"}
+                </span>
+              </div>
+
+              <div className="p-5 rounded-2xl border border-slate-850 bg-slate-950/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-start sm:items-center gap-4 min-w-0">
                   <span className="p-3.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
                     <FileText className="h-6 w-6" />
                   </span>
-                  <div className="min-w-0">
-                    <h4 className="text-sm font-bold text-slate-100 truncate pr-2">
+                  <div className="min-w-0 space-y-1">
+                    <h4 className="text-sm font-bold text-slate-100 truncate pr-2" title={latestResume.originalName}>
                       {latestResume.originalName}
                     </h4>
-                    <p className="text-[10px] text-slate-500 mt-1.5 leading-none">
-                      Size: {(latestResume.fileSize / (1024 * 1024)).toFixed(2)} MB • Uploaded: {new Date(latestResume.uploadedAt || latestResume.createdAt).toLocaleDateString()}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-slate-400">
+                      <span>Size: <strong className="text-slate-300 font-medium">{formatFileSize(latestResume.fileSize)}</strong></span>
+                      <span>•</span>
+                      <span>Type: <strong className="text-slate-300 font-medium">{formatFileType(latestResume.fileType)}</strong></span>
+                      <span>•</span>
+                      <span>Uploaded: <strong className="text-slate-300 font-medium">{formatDate(latestResume.uploadedAt || latestResume.createdAt)}</strong></span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
                   <div className="text-right hidden sm:block">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">ATS Score</span>
                     <span className="text-sm font-extrabold text-indigo-400">
@@ -412,7 +447,7 @@ export function ResumePage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="p-5 rounded-2xl border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-1">
               <span className="text-[10px] block font-bold text-slate-500 uppercase tracking-wider">Current Resume</span>
-              <p className="text-xs font-bold text-white truncate max-w-full pt-2">
+              <p className="text-xs font-bold text-white truncate max-w-full pt-2" title={latestResume?.originalName}>
                 {latestResume ? latestResume.originalName : "None Selected"}
               </p>
             </div>
@@ -428,18 +463,20 @@ export function ResumePage() {
               <span className="text-[10px] block font-bold text-slate-500 uppercase tracking-wider">Last Updated</span>
               <p className="text-xs font-bold text-slate-200 pt-2">
                 {latestResume 
-                  ? new Date(latestResume.updatedAt || latestResume.uploadedAt).toLocaleDateString() 
+                  ? formatDate(latestResume.updatedAt || latestResume.uploadedAt) 
                   : "--"}
               </p>
             </div>
 
             <div className="p-5 rounded-2xl border border-slate-800 bg-[#0F172A]/40 backdrop-blur-sm space-y-1">
               <span className="text-[10px] block font-bold text-slate-500 uppercase tracking-wider">Resume Status</span>
-              <span className={`inline-flex items-center px-2 py-0.5 mt-2 rounded-full text-[10px] font-semibold ${
+              <span className={`inline-flex items-center px-2 py-0.5 mt-2 rounded-full text-[10px] font-semibold capitalize ${
                 latestResume?.analysisStatus === "completed"
                   ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
                   : latestResume?.analysisStatus === "processing"
                   ? "bg-indigo-500/10 border border-indigo-500/20 text-indigo-400"
+                  : latestResume?.analysisStatus === "failed"
+                  ? "bg-red-500/10 border border-red-500/20 text-red-400"
                   : latestResume?.analysisStatus === "pending"
                   ? "bg-amber-500/10 border border-amber-500/20 text-amber-400"
                   : "bg-slate-900 border border-slate-800 text-slate-400"

@@ -1,0 +1,76 @@
+{
+  "client": "Thunder Client",
+  "collectionName": "AI CareerPilot - Resume Module",
+  "dateExported": "2026-08-26T15:00:00.000Z",
+  "version": "1.1",
+  "folders": [],
+  "requests": [
+    {
+      "name": "Get Latest Resume (Success)",
+      "url": "http://localhost:5000/api/v1/resume",
+      "method": "GET",
+      "sortNum": 10000,
+      "created": "2026-08-26T15:00:00.000Z",
+      "modified": "2026-08-26T15:00:00.000Z",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{YOUR_JWT_TOKEN_HERE}}"
+        }
+      ]
+    },
+    {
+      "name": "Upload Resume",
+      "url": "http://localhost:5000/api/v1/resume/upload",
+      "method": "POST",
+      "sortNum": 20000,
+      "created": "2026-08-26T15:00:00.000Z",
+      "modified": "2026-08-26T15:00:00.000Z",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{YOUR_JWT_TOKEN_HERE}}"
+        }
+      ],
+      "body": {
+        "type": "formdata",
+        "raw": "",
+        "form": [
+          {
+            "name": "resume",
+            "value": "",
+            "type": "file"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Get Resume by ID",
+      "url": "http://localhost:5000/api/v1/resume/:id",
+      "method": "GET",
+      "sortNum": 30000,
+      "created": "2026-08-26T15:00:00.000Z",
+      "modified": "2026-08-26T15:00:00.000Z",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{YOUR_JWT_TOKEN_HERE}}"
+        }
+      ]
+    },
+    {
+      "name": "Delete Resume",
+      "url": "http://localhost:5000/api/v1/resume/:id",
+      "method": "DELETE",
+      "sortNum": 40000,
+      "created": "2026-08-26T15:00:00.000Z",
+      "modified": "2026-08-26T15:00:00.000Z",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{YOUR_JWT_TOKEN_HERE}}"
+        }
+      ]
+    }
+  ]
+}
